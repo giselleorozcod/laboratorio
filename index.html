@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>U - Visualización de Redes</title>
+  
+  <!-- Carga de biblioteca D3.js v7 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  
+  <!-- Carga de fuentes de Google Fonts (DM Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================
+       1. CONFIGURACIÓN DE ESTILOS CSS
+       ========================================== */
+    
+    /* // AJUSTABLE: Estilos generales, colores de interfaz y tipografía */
+    :root {
+      --bg-color: #121915;
+      --panel-bg: rgba(22, 32, 26, 0.85);
+      --panel-border: #2a3b30;
+      --text-main: #e2ece6;
+      --text-muted: #8ba394;
+      --accent-green: #2ecc71;
+      --accent-white: #ffffff;
+      --accent-black: #111111;
+      --highlight: #f39c12;
+      --font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Encabezado y Navegación por Pestañas */
+    header {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent-green);
+      letter-spacing: 1px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-family: var(--font-family);
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-green);
+      color: var(--accent-black);
+      font-weight: 700;
+    }
+
+    .controls-header {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Botones y Carga de Archivos */
+    .btn {
+      background: rgba(46, 204, 113, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 6px 14px;
+      font-family: var(--font-family);
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--accent-green);
+      color: var(--accent-black);
+    }
+
+    .btn input[type="file"] {
+      display: none;
+    }
+
+    /* Layout Principal */
+    main {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+
+    #graph-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Panel Lateral Desplegable */
+    .sidebar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 280px;
+      max-height: calc(100% - 40px);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+      transform: translateX(-310px);
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 6;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 6px;
+    }
+
+    .legend-item, .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-container input {
+      cursor: pointer;
+      accent-color: var(--accent-green);
+    }
+
+    /* Banners y Notificaciones */
+    .banner-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 25, 21, 0.85);
+      backdrop-filter: blur(5px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .banner-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      padding: 30px 40px;
+      border-radius: 12px;
+      max-width: 480px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+
+    .banner-card h2 {
+      margin-bottom: 12px;
+      color: var(--accent-green);
+    }
+
+    .banner-card p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .notices-container {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 10;
+      max-width: 360px;
+    }
+
+    .notice-item {
+      background: rgba(231, 76, 60, 0.2);
+      border: 1px solid #e74c3c;
+      color: #f1c40f;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      padding: 10px 14px;
+      background: rgba(10, 15, 12, 0.95);
+      border: 1px solid var(--accent-green);
+      color: var(--text-main);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      line-height: 1.4;
+    }
+
+    .tooltip-title {
+      font-weight: bold;
+      color: var(--accent-green);
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+
+    /* SVGs & Grafo Elementos */
+    svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    svg:active {
+      cursor: grabbing;
+    }
+
+    .node {
+      stroke-width: 1.5px;
+      transition: opacity 0.3s, filter 0.3s;
+      cursor: pointer;
+    }
+
+    .node-label {
+      font-size: 10px;
+      fill: var(--text-main);
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+      font-weight: 500;
+    }
+
+    .link {
+      transition: opacity 0.3s, stroke-width 0.3s;
+      fill: none;
+    }
+
+    .dimmed {
+      opacity: 0.1 !important;
+    }
+
+    .highlighted {
+      opacity: 1 !important;
+    }
+
+    /* Selector de Nodo Ego */
+    .ego-selector {
+      margin-top: 8px;
+    }
+
+    .ego-selector select {
+      width: 100%;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      border-radius: 4px;
+      font-family: var(--font-family);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Encabezado de Navegación -->
+  <header>
+    <div class="brand">
+      <h1>U</h1>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab-btn active" onclick="app.setMode('network')">Red</button>
+      <button class="tab-btn" onclick="app.setMode('bipartite')">Bipartito en Columnas</button>
+      <button class="tab-btn" onclick="app.setMode('ego')">Red Ego</button>
+    </div>
+
+    <div class="controls-header">
+      <label class="btn">
+        <span>Personajes (Points)</span>
+        <input type="file" id="input-points" accept=".csv">
+      </label>
+      <label class="btn">
+        <span>Películas (Links)</span>
+        <input type="file" id="input-links" accept=".csv">
+      </label>
+    </div>
+  </header>
+
+  <!-- Área de Renderizado Principal -->
+  <main>
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="app.toggleSidebar()">☰</button>
+    
+    <!-- Barra Lateral de Capas y Filtros -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Capas</div>
+        <label class="checkbox-container">
+          <input type="checkbox" id="layer-nodes" checked onchange="app.toggleLayer('nodes', this.checked)">
+          <span>Nodos</span>
+        </label>
+        <label class="checkbox-container">
+          <input type="checkbox" id="layer-links" checked onchange="app.toggleLayer('links', this.checked)">
+          <span>Conexiones</span>
+        </label>
+        <label class="checkbox-container">
+          <input type="checkbox" id="layer-labels" checked onchange="app.toggleLayer('labels', this.checked)">
+          <span>Etiquetas</span>
+        </label>
+        <label class="checkbox-container">
+          <input type="checkbox" id="show-isolated" onchange="app.toggleIsolated(this.checked)">
+          <span>Mostrar aislados (<span id="isolated-count">0</span>)</span>
+        </label>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Categorías</div>
+        <div id="categories-container"></div>
+      </div>
+
+      <div class="sidebar-section" id="ego-controls-section" style="display: none;">
+        <div class="sidebar-title">Configuración Ego</div>
+        <div class="ego-selector">
+          <label for="ego-node-select" style="font-size: 0.8rem; color: var(--text-muted);">Nodo Ego Central:</label>
+          <select id="ego-node-select" onchange="app.setEgoCenter(this.value)"></select>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Contenedor del Grafo SVG -->
+    <div id="graph-container"></div>
+
+    <!-- Pantalla Inicial de Carga -->
+    <div class="banner-overlay" id="welcome-banner">
+      <div class="banner-card">
+        <h2>Bienvenido a U</h2>
+        <p>Para comenzar con la visualización interactiva de red, por favor carga los dos archivos CSV requeridos utilizando los botones de la barra superior.</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <label class="btn" style="padding: 10px 20px;">
+            <span>Cargar Personajes</span>
+            <input type="file" id="banner-input-points" accept=".csv">
+          </label>
+          <label class="btn" style="padding: 10px 20px;">
+            <span>Cargar Películas</span>
+            <input type="file" id="banner-input-links" accept=".csv">
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor de Advertencias / Avisos -->
+    <div class="notices-container" id="notices-container"></div>
+
+    <!-- Tooltip Flotante -->
+    <div class="tooltip" id="tooltip"></div>
+  </main>
+
+  <script>
+    /* ==========================================
+       1. CONFIGURACIÓN
+       ========================================== */
+    // AJUSTABLE: Parámetros globales de tamaños, grosores y colores
+    const CONFIG = {
+      nodeRadiusRange: [8, 25],          // Rango de radios de nodos [mín, máx] en px
+      linkWidthRange: [1, 4],            // Rango de grosores de enlaces [mín, máx] en px
+      colors: {
+        categoryA: "#2ecc71",           // Color principal verde
+        categoryB: "#ffffff",           // Color secundario blanco
+        defaultNode: "#95a5a6",         // Color para categorías no mapeadas
+        linkDefault: "url(#link-gradient)" // Uso de degradado origen->destino por defecto
+      },
+      dottedTypes: ["secundario", "opcional", "falso", "punteada", "dotted", "2"] // Valores que activan línea punteada
+    };
+
+    /* ==========================================
+       2. ESTADO
+       ========================================== */
+    // Mantiene el estado global de la aplicación
+    const state = {
+      rawData: { points: null, links: null },
+      nodes: [],
+      links: [],
+      headers: { points: [], links: [] },
+      categories: new Set(),
+      categoryColors: {},
+      hiddenCategories: new Set(),
+      mode: 'network',                   // Modos: 'network', 'bipartite', 'ego'
+      layers: { nodes: true, links: true, labels: true },
+      showIsolated: false,
+      selectedNode: null,
+      egoCenterId: null,
+      sidebarCollapsed: false,
+      simulation: null
+    };
+
+    /* ==========================================
+       3. LECTURA DE CSV
+       ========================================== */
+    // Helper para lectura y parsing robusto de archivos CSV respetando UTF-8, delimitadores y comillas
+    function parseCSV(text) {
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.substr(1);
+      }
+      
+      const firstLine = text.split(/\r\n|\n/)[0] || "";
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      const semicolonCount = (firstLine.match(/;/g) || []).length;
+      const delimiter = semicolonCount > commaCount ? ';' : ',';
+
+      const rows = d3.dsvFormat(delimiter).parseRows(text);
+      return rows.map(row => row.map(cell => cell ? cell.trim() : '')).filter(row => row.some(cell => cell !== ''));
+    }
+
+    // Procesa los archivos subidos y emite notificaciones si hay discrepancias
+    function processRawData() {
+      if (!state.rawData.points || !state.rawData.links) return;
+
+      const pointsRows = parseCSV(state.rawData.points);
+      const linksRows = parseCSV(state.rawData.links);
+
+      if (pointsRows.length === 0 || linksRows.length === 0) return;
+
+      state.headers.points = pointsRows[0];
+      state.headers.links = linksRows[0];
+
+      const rawPointsData = pointsRows.slice(1);
+      const rawLinksData = linksRows.slice(1);
+
+      const nodesMap = new Map();
+      state.categories.clear();
+
+      rawPointsData.forEach(row => {
+        const id = row[0];
+        if (!id) return;
+        const category = row[1] || 'Sin Categoría';
+        const weight = row[2] ? parseFloat(row[2]) : null;
+
+        nodesMap.set(id, {
+          id: id,
+          category: category,
+          weight: weight,
+          connections: 0,
+          degree: 0,
+          customAttrs: row
+        });
+        state.categories.add(category);
+      });
+
+      const catArray = Array.from(state.categories);
+      catArray.forEach((cat, idx) => {
+        if (idx === 0) state.categoryColors[cat] = CONFIG.colors.categoryA;
+        else if (idx === 1) state.categoryColors[cat] = CONFIG.colors.categoryB;
+        else state.categoryColors[cat] = d3.schemeCategory10[idx % 10];
+      });
+
+      const validLinks = [];
+      let emptySourceTargetCount = 0;
+      const missingNodesSet = new Set();
+
+      rawLinksData.forEach(row => {
+        const source = row[0];
+        const target = row[1];
+        const weight = row[2] ? parseFloat(row[2]) : 1;
+        const type = row[3] || 'Continua';
+        const direction = row[4] || 'Origen → Destino';
+
+        if (!source || !target) {
+          emptySourceTargetCount++;
+          return;
+        }
+
+        if (!nodesMap.has(source)) missingNodesSet.add(source);
+        if (!nodesMap.has(target)) missingNodesSet.add(target);
+
+        if (nodesMap.has(source) && nodesMap.has(target)) {
+          validLinks.push({
+            source: source,
+            target: target,
+            weight: isNaN(weight) ? 1 : weight,
+            type: type,
+            direction: direction,
+            customAttrs: row
+          });
+
+          const sourceNode = nodesMap.get(source);
+          const targetNode = nodesMap.get(target);
+          sourceNode.connections++;
+          targetNode.connections++;
+        }
+      });
+
+      state.nodes = Array.from(nodesMap.values());
+      state.links = validLinks;
+
+      const noticesContainer = d3.select("#notices-container");
+      noticesContainer.html("");
+
+      if (emptySourceTargetCount > 0) {
+        noticesContainer.append("div")
+          .attr("class", "notice-item")
+          .text(`Se omitieron ${emptySourceTargetCount} filas con origen o destino vacío en Películas (Links).`);
+      }
+
+      if (missingNodesSet.size > 0) {
+        noticesContainer.append("div")
+          .attr("class", "notice-item")
+          .text(`Nodos de Películas no encontrados en Personajes: ${Array.from(missingNodesSet).join(', ')}`);
+      }
+
+      d3.select("#welcome-banner").style("display", "none");
+      updateSidebarUI();
+      app.initGraph();
+    }
+
+    /* ==========================================
+       4. MODELO DE DATOS Y VECINOS
+       ========================================== */
+    function calculateAdjacencies() {
+      state.nodes.forEach(n => {
+        n.neighbors = new Set();
+        n.links = new Set();
+      });
+
+      state.links.forEach(l => {
+        const sourceObj = typeof l.source === 'object' ? l.source : state.nodes.find(n => n.id === l.source);
+        const targetObj = typeof l.target === 'object' ? l.target : state.nodes.find(n => n.id === l.target);
+
+        if (sourceObj && targetObj) {
+          sourceObj.neighbors.add(targetObj.id);
+          targetObj.neighbors.add(sourceObj.id);
+          sourceObj.links.add(l);
+          targetObj.links.add(l);
+        }
+      });
+    }
+
+    /* ==========================================
+       5. ESCALAS
+       ========================================== */
+    function getScales() {
+      const nodeWeightExtent = d3.extent(state.nodes, n => n.weight !== null ? n.weight : n.connections);
+      const linkWeightExtent = d3.extent(state.links, l => l.weight);
+
+      const nodeScale = d3.scaleSqrt()
+        .domain([nodeWeightExtent[0] || 1, nodeWeightExtent[1] || 10])
+        .range(CONFIG.nodeRadiusRange);
+
+      const linkScale = d3.scaleLinear()
+        .domain([linkWeightExtent[0] || 1, linkWeightExtent[1] || 10])
+        .range(CONFIG.linkWidthRange);
+
+      return { nodeScale, linkScale };
+    }
+
+    /* ==========================================
+       6. MODOS DE VISUALIZACIÓN
+       ========================================== */
+    function layoutNetwork(svg, width, height, scales) {
+      if (state.simulation) state.simulation.stop();
+
+      const filterNodes = getFilteredNodes();
+      const filterLinks = getFilteredLinks(filterNodes);
+
+      state.simulation = d3.forceSimulation(filterNodes)
+        .force("link", d3.forceLink(filterLinks).id(d => d.id).distance(80))
+        .force("charge", d3.forceManyBody().strength(-250))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collide", d3.forceCollide().radius(d => scales.nodeScale(d.weight !== null ? d.weight : d.connections) + 12));
+
+      const g = svg.select("g.main-group");
+
+      state.simulation.on("tick", () => {
+        g.selectAll(".link")
+          .attr("d", d => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
+
+        g.selectAll(".node")
+          .attr("transform", d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    function layoutBipartite(svg, width, height, scales) {
+      if (state.simulation) state.simulation.stop();
+
+      const filterNodes = getFilteredNodes();
+      const categories = Array.from(state.categories).filter(c => !state.hiddenCategories.has(c));
+      const colA = filterNodes.filter(n => n.category === categories[0]);
+      const colB = filterNodes.filter(n => n.category !== categories[0]);
+
+      const xA = width * 0.3;
+      const xB = width * 0.7;
+
+      colA.forEach((n, i) => {
+        n.x = xA;
+        n.y = ((i + 1) * height) / (colA.length + 1);
+      });
+
+      colB.forEach((n, i) => {
+        n.x = xB;
+        n.y = ((i + 1) * height) / (colB.length + 1);
+      });
+
+      const g = svg.select("g.main-group");
+
+      g.selectAll(".node")
+        .transition().duration(750)
+        .attr("transform", d => `translate(${d.x},${d.y})`);
+
+      g.selectAll(".link")
+        .transition().duration(750)
+        .attr("d", d => {
+          const linkGen = d3.linkHorizontal()
+            .x(node => node.x)
+            .y(node => node.y);
+          return linkGen({ source: d.source, target: d.target });
+        });
+    }
+
+    function layoutEgo(svg, width, height, scales) {
+      if (state.simulation) state.simulation.stop();
+
+      const filterNodes = getFilteredNodes();
+      const egoCenter = filterNodes.find(n => n.id === state.egoCenterId) || filterNodes[0];
+      
+      if (!egoCenter) return;
+      state.egoCenterId = egoCenter.id;
+
+      const ring1 = new Set(egoCenter.neighbors);
+      const ring2 = new Set();
+
+      ring1.forEach(neighborId => {
+        const neighborNode = filterNodes.find(n => n.id === neighborId);
+        if (neighborNode) {
+          neighborNode.neighbors.forEach(n2 => {
+            if (n2 !== egoCenter.id && !ring1.has(n2)) {
+              ring2.add(n2);
+            }
+          });
+        }
+      });
+
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const r1Radius = Math.min(width, height) * 0.22;
+      const r2Radius = Math.min(width, height) * 0.40;
+
+      egoCenter.x = centerX;
+      egoCenter.y = centerY;
+
+      const arrR1 = Array.from(ring1).map(id => filterNodes.find(n => n.id === id)).filter(Boolean);
+      arrR1.forEach((n, i) => {
+        const angle = (i * 2 * Math.PI) / arrR1.length;
+        n.x = centerX + r1Radius * Math.cos(angle);
+        n.y = centerY + r1Radius * Math.sin(angle);
+      });
+
+      const arrR2 = Array.from(ring2).map(id => filterNodes.find(n => n.id === id)).filter(Boolean);
+      arrR2.forEach((n, i) => {
+        const angle = (i * 2 * Math.PI) / arrR2.length;
+        n.x = centerX + r2Radius * Math.cos(angle);
+        n.y = centerY + r2Radius * Math.sin(angle);
+      });
+
+      filterNodes.forEach(n => {
+        if (n.id !== egoCenter.id && !ring1.has(n.id) && !ring2.has(n.id)) {
+          n.x = -500;
+          n.y = -500;
+        }
+      });
+
+      const g = svg.select("g.main-group");
+
+      g.selectAll(".node")
+        .transition().duration(750)
+        .attr("transform", d => `translate(${d.x},${d.y})`);
+
+      g.selectAll(".link")
+        .transition().duration(750)
+        .attr("d", d => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
+    }
+
+    function getFilteredNodes() {
+      return state.nodes.filter(n => {
+        if (state.hiddenCategories.has(n.category)) return false;
+        if (!state.showIsolated && n.connections === 0) return false;
+        return true;
+      });
+    }
+
+    function getFilteredLinks(filteredNodes) {
+      const validIds = new Set(filteredNodes.map(n => n.id));
+      return state.links.filter(l => {
+        const sId = typeof l.source === 'object' ? l.source.id : l.source;
+        const tId = typeof l.target === 'object' ? l.target.id : l.target;
+        return validIds.has(sId) && validIds.has(tId);
+      });
+    }
+
+    /* ==========================================
+       7. INTERACCIÓN Y DIBUJO CON D3
+       ========================================== */
+    const app = {
+      initGraph: function() {
+        calculateAdjacencies();
+        const container = d3.select("#graph-container");
+        container.html("");
+
+        const width = container.node().clientWidth;
+        const height = container.node().clientHeight;
+
+        const svg = container.append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        const defs = svg.append("defs");
+
+        defs.append("marker")
+          .attr("id", "arrow-end")
+          .attr("viewBox", "0 -5 10 10")
+          .attr("refX", 18)
+          .attr("refY", 0)
+          .attr("markerWidth", 6)
+          .attr("markerHeight", 6)
+          .attr("orient", "auto")
+          .append("path")
+          .attr("d", "M0,-5L10,0L0,5")
+          .attr("fill", CONFIG.colors.categoryA);
+
+        defs.append("marker")
+          .attr("id", "arrow-start")
+          .attr("viewBox", "0 -5 10 10")
+          .attr("refX", -8)
+          .attr("refY", 0)
+          .attr("markerWidth", 6)
+          .attr("markerHeight", 6)
+          .attr("orient", "auto")
+          .append("path")
+          .attr("d", "M10,-5L0,0L10,5")
+          .attr("fill", CONFIG.colors.categoryA);
+
+        const mainGroup = svg.append("g").attr("class", "main-group");
+
+        const zoom = d3.zoom()
+          .scaleExtent([0.2, 5])
+          .on("zoom", (event) => mainGroup.attr("transform", event.transform));
+
+        svg.call(zoom).on("dblclick.zoom", null);
+
+        svg.on("click", (e) => {
+          if (e.target.tagName === "svg") {
+            state.selectedNode = null;
+            app.highlightElements(null);
+          }
+        });
+
+        this.renderGraph();
+      },
+
+      renderGraph: function() {
+        const svg = d3.select("#graph-container svg");
+        if (svg.empty()) return;
+
+        const width = svg.attr("width");
+        const height = svg.attr("height");
+        const mainGroup = svg.select("g.main-group");
+
+        const scales = getScales();
+        const filterNodes = getFilteredNodes();
+        const filterLinks = getFilteredLinks(filterNodes);
+
+        const linkSelection = mainGroup.selectAll(".link")
+          .data(filterLinks, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+
+        linkSelection.exit().remove();
+
+        const linkEnter = linkSelection.enter()
+          .append("path")
+          .attr("class", "link")
+          .attr("stroke", CONFIG.colors.categoryA)
+          .attr("stroke-opacity", 0.6);
+
+        const links = linkEnter.merge(linkSelection)
+          .attr("stroke-width", d => scales.linkScale(d.weight))
+          .attr("stroke-dasharray", d => {
+            const isDotted = CONFIG.dottedTypes.includes(String(d.type).toLowerCase());
+            return isDotted ? "4,4" : "none";
+          })
+          .attr("marker-end", d => (d.direction === "Origen → Destino" || d.direction === "Ambos") ? "url(#arrow-end)" : null)
+          .attr("marker-start", d => (d.direction === "Destino → Origen" || d.direction === "Ambos") ? "url(#arrow-start)" : null)
+          .on("mouseover", (event, d) => app.showLinkTooltip(event, d))
+          .on("mouseout", () => app.hideTooltip());
+
+        const nodeSelection = mainGroup.selectAll(".node")
+          .data(filterNodes, d => d.id);
+
+        nodeSelection.exit().remove();
+
+        const nodeEnter = nodeSelection.enter()
+          .append("g")
+          .attr("class", "node")
+          .call(d3.drag()
+            .on("start", app.dragStarted)
+            .on("drag", app.dragged)
+            .on("end", app.dragEnded));
+
+        nodeEnter.append("circle")
+          .attr("r", d => scales.nodeScale(d.weight !== null ? d.weight : d.connections))
+          .attr("fill", d => state.categoryColors[d.category] || CONFIG.colors.defaultNode)
+          .attr("stroke", "#ffffff")
+          .attr("stroke-width", 1.5);
+
+        nodeEnter.append("text")
+          .attr("class", "node-label")
+          .attr("dy", d => scales.nodeScale(d.weight !== null ? d.weight : d.connections) + 12)
+          .text(d => d.id);
+
+        const nodes = nodeEnter.merge(nodeSelection);
+
+        nodes.on("click", (event, d) => {
+          event.stopPropagation();
+          state.selectedNode = d;
+          if (state.mode === 'ego') {
+            state.egoCenterId = d.id;
+            d3.select("#ego-node-select").property("value", d.id);
+            app.renderGraph();
+          } else {
+            app.highlightElements(d);
+          }
+        })
+        .on("mouseover", (event, d) => app.showNodeTooltip(event, d))
+        .on("mouseout", () => app.hideTooltip());
+
+        mainGroup.selectAll(".node circle").style("display", state.layers.nodes ? "block" : "none");
+        mainGroup.selectAll(".link").style("display", state.layers.links ? "block" : "none");
+        mainGroup.selectAll(".node-label").style("display", state.layers.labels ? "block" : "none");
+
+        if (state.mode === 'network') layoutNetwork(svg, width, height, scales);
+        else if (state.mode === 'bipartite') layoutBipartite(svg, width, height, scales);
+        else if (state.mode === 'ego') layoutEgo(svg, width, height, scales);
+      },
+
+      highlightElements: function(selectedNode) {
+        const svg = d3.select("#graph-container svg");
+
+        if (!selectedNode) {
+          svg.selectAll(".node").classed("dimmed", false).classed("highlighted", false);
+          svg.selectAll(".link").classed("dimmed", false).classed("highlighted", false);
+          return;
+        }
+
+        const neighbors = selectedNode.neighbors;
+
+        svg.selectAll(".node").each(function(d) {
+          const isSelected = d.id === selectedNode.id;
+          const isNeighbor = neighbors.has(d.id);
+          d3.select(this)
+            .classed("highlighted", isSelected || isNeighbor)
+            .classed("dimmed", !isSelected && !isNeighbor);
+        });
+
+        svg.selectAll(".link").each(function(d) {
+          const sId = typeof d.source === 'object' ? d.source.id : d.source;
+          const tId = typeof d.target === 'object' ? d.target.id : d.target;
+          const isConnected = sId === selectedNode.id || tId === selectedNode.id;
+
+          d3.select(this)
+            .classed("highlighted", isConnected)
+            .classed("dimmed", !isConnected);
+        });
+      },
+
+      dragStarted: function(event, d) {
+        if (state.mode !== 'network') return;
+        if (!event.active) state.simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      },
+
+      dragged: function(event, d) {
+        if (state.mode !== 'network') return;
+        d.fx = event.x;
+        d.fy = event.y;
+      },
+
+      dragEnded: function(event, d) {
+        if (state.mode !== 'network') return;
+        if (!event.active) state.simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      },
+
+      showNodeTooltip: function(event, d) {
+        const tooltip = d3.select("#tooltip");
+        let html = `<div class="tooltip-title">${d.id}</div>`;
+        html += `<b>Categoría:</b> ${d.category}<br/>`;
+        if (d.weight !== null) html += `<b>Peso:</b> ${d.weight}<br/>`;
+        html += `<b>Conexiones:</b> ${d.connections}`;
+
+        tooltip.html(html)
+          .style("opacity", 1)
+          .style("left", Math.min(event.pageX + 15, window.innerWidth - 220) + "px")
+          .style("top", Math.min(event.pageY + 15, window.innerHeight - 120) + "px");
+      },
+
+      showLinkTooltip: function(event, d) {
+        const tooltip = d3.select("#tooltip");
+        const sId = typeof d.source === 'object' ? d.source.id : d.source;
+        const tId = typeof d.target === 'object' ? d.target.id : d.target;
+
+        let html = `<div class="tooltip-title">Conexión</div>`;
+        html += `<b>Origen:</b> ${sId}<br/>`;
+        html += `<b>Destino:</b> ${tId}<br/>`;
+        html += `<b>Peso:</b> ${d.weight}<br/>`;
+        html += `<b>Tipo:</b> ${d.type}<br/>`;
+        html += `<b>Sentido:</b> ${d.direction}`;
+
+        tooltip.html(html)
+          .style("opacity", 1)
+          .style("left", Math.min(event.pageX + 15, window.innerWidth - 220) + "px")
+          .style("top", Math.min(event.pageY + 15, window.innerHeight - 120) + "px");
+      },
+
+      hideTooltip: function() {
+        d3.select("#tooltip").style("opacity", 0);
+      },
+
+      /* ==========================================
+         8. INTERFAZ Y EVENTOS DE USUARIO
+         ========================================== */
+      setMode: function(mode) {
+        state.mode = mode;
+        d3.selectAll(".tab-btn").classed("active", false);
+        event.target.classList.add("active");
+
+        d3.select("#ego-controls-section").style("display", mode === 'ego' ? "block" : "none");
+
+        if (mode === 'ego' && !state.egoCenterId && state.nodes.length > 0) {
+          state.egoCenterId = state.nodes[0].id;
+        }
+
+        this.renderGraph();
+      },
+
+      toggleLayer: function(layer, visible) {
+        state.layers[layer] = visible;
+        this.renderGraph();
+      },
+
+      toggleIsolated: function(show) {
+        state.showIsolated = show;
+        this.renderGraph();
+      },
+
+      toggleSidebar: function() {
+        state.sidebarCollapsed = !state.sidebarCollapsed;
+        d3.select("#sidebar").classed("collapsed", state.sidebarCollapsed);
+      },
+
+      setEgoCenter: function(nodeId) {
+        state.egoCenterId = nodeId;
+        this.renderGraph();
+      }
+    };
+
+    function updateSidebarUI() {
+      const isolatedCount = state.nodes.filter(n => n.connections === 0).length;
+      d3.select("#isolated-count").text(isolatedCount);
+
+      const catContainer = d3.select("#categories-container");
+      catContainer.html("");
+
+      state.categories.forEach(cat => {
+        const item = catContainer.append("div").attr("class", "legend-item");
+        
+        const labelGroup = item.append("div").style("display", "flex").style("align-items", "center");
+        labelGroup.append("span")
+          .attr("class", "legend-color")
+          .style("background-color", state.categoryColors[cat]);
+        labelGroup.append("span").text(cat);
+
+        const checkbox = item.append("input")
+          .attr("type", "checkbox")
+          .property("checked", !state.hiddenCategories.has(cat))
+          .on("change", function() {
+            if (this.checked) state.hiddenCategories.delete(cat);
+            else state.hiddenCategories.add(cat);
+            app.renderGraph();
+          });
+      });
+
+      const egoSelect = d3.select("#ego-node-select");
+      egoSelect.html("");
+      state.nodes.forEach(n => {
+        egoSelect.append("option").attr("value", n.id).text(n.id);
+      });
+    }
+
+    /* ==========================================
+       9. INICIO Y EVENT LISTENERS
+       ========================================== */
+    function setupFileListeners() {
+      const handlePoints = (file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          state.rawData.points = e.target.result;
+          processRawData();
+        };
+        reader.readAsText(file);
+      };
+
+      const handleLinks = (file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          state.rawData.links = e.target.result;
+          processRawData();
+        };
+        reader.readAsText(file);
+      };
+
+      d3.select("#input-points").on("change", (e) => e.target.files[0] && handlePoints(e.target.files[0]));
+      d3.select("#input-links").on("change", (e) => e.target.files[0] && handleLinks(e.target.files[0]));
+      d3.select("#banner-input-points").on("change", (e) => e.target.files[0] && handlePoints(e.target.files[0]));
+      d3.select("#banner-input-links").on("change", (e) => e.target.files[0] && handleLinks(e.target.files[0]));
+
+      window.addEventListener("resize", () => {
+        if (state.nodes.length > 0) app.initGraph();
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setupFileListeners();
+    });
+  </script>
+</body>
+</html>
