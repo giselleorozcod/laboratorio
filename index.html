@@ -113,6 +113,23 @@
       align-items: center;
     }
 
+    .dataset-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .dataset-selector select {
+      padding: 6px 8px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      border-radius: 6px;
+      font-family: var(--font-family);
+    }
+
     /* Botones y Carga de Archivos */
     .btn {
       background: rgba(46, 204, 113, 0.15);
@@ -212,6 +229,24 @@
       color: var(--text-muted);
       border-bottom: 1px solid var(--panel-border);
       padding-bottom: 6px;
+    }
+
+    .color-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.85rem;
+    }
+
+    .color-control input[type="color"] {
+      width: 38px;
+      height: 28px;
+      padding: 2px;
+      background: transparent;
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      cursor: pointer;
     }
 
     .legend-item, .layer-item {
@@ -397,12 +432,19 @@
     </div>
 
     <div class="controls-header">
+      <label class="dataset-selector" for="dataset-select">
+        <span>Datos</span>
+        <select id="dataset-select" onchange="app.loadDataset(this.value)">
+          <option value="marvel" selected>Marvel</option>
+          <option value="ingredientes">Ingredientes</option>
+        </select>
+      </label>
       <label class="btn">
-        <span>Personajes (Points)</span>
+        <span>Nodos (Points)</span>
         <input type="file" id="input-points" accept=".csv">
       </label>
       <label class="btn">
-        <span>Películas (Links)</span>
+        <span>Conexiones (Links)</span>
         <input type="file" id="input-links" accept=".csv">
       </label>
     </div>
@@ -439,6 +481,15 @@
         <div id="categories-container"></div>
       </div>
 
+      <div class="sidebar-section">
+        <div class="sidebar-title">Apariencia</div>
+        <label class="color-control" for="background-color">
+          <span>Color del fondo</span>
+          <input type="color" id="background-color" aria-label="Color del fondo" oninput="app.setBackgroundColor(this.value)">
+        </label>
+        <div id="node-colors-container"></div>
+      </div>
+
       <div class="sidebar-section" id="ego-controls-section" style="display: none;">
         <div class="sidebar-title">Configuración Ego</div>
         <div class="ego-selector">
@@ -455,14 +506,14 @@
     <div class="banner-overlay" id="welcome-banner">
       <div class="banner-card">
         <h2>Bienvenido a U</h2>
-        <p>Para comenzar con la visualización interactiva de red, por favor carga los dos archivos CSV requeridos utilizando los botones de la barra superior.</p>
+        <p>Elige Marvel o Ingredientes en el selector de datos, o carga tus propios archivos CSV desde la barra superior.</p>
         <div style="display: flex; gap: 10px; justify-content: center;">
           <label class="btn" style="padding: 10px 20px;">
-            <span>Cargar Personajes</span>
+            <span>Cargar Nodos</span>
             <input type="file" id="banner-input-points" accept=".csv">
           </label>
           <label class="btn" style="padding: 10px 20px;">
-            <span>Cargar Películas</span>
+            <span>Cargar Conexiones</span>
             <input type="file" id="banner-input-links" accept=".csv">
           </label>
         </div>
@@ -488,9 +539,21 @@
         categoryA: "#2ecc71",           // Color principal verde
         categoryB: "#ffffff",           // Color secundario blanco
         defaultNode: "#95a5a6",         // Color para categorías no mapeadas
+        background: "#121915",
         linkDefault: "url(#link-gradient)" // Uso de degradado origen->destino por defecto
       },
       dottedTypes: ["secundario", "opcional", "falso", "punteada", "dotted", "2"] // Valores que activan línea punteada
+    };
+
+    const DATASETS = {
+      marvel: {
+        points: "data/marvel/Marvel_Points_ampliado.csv",
+        links: "data/marvel/Marvel_Links_ampliado.csv"
+      },
+      ingredientes: {
+        points: "data/ingredientes/Points.1793384821964.csv",
+        links: "data/ingredientes/Links.1793384813866.csv"
+      }
     };
 
     /* ==========================================
@@ -503,7 +566,10 @@
       links: [],
       headers: { points: [], links: [] },
       categories: new Set(),
-      categoryColors: {},
+      categoryColors: Object.create(null),
+      customCategoryColors: Object.create(null),
+      backgroundColor: CONFIG.colors.background,
+      currentDataset: null,
       hiddenCategories: new Set(),
       mode: 'network',                   // Modos: 'network', 'bipartite', 'ego'
       layers: { nodes: true, links: true, labels: true },
@@ -569,7 +635,9 @@
 
       const catArray = Array.from(state.categories);
       catArray.forEach((cat, idx) => {
-        if (idx === 0) state.categoryColors[cat] = CONFIG.colors.categoryA;
+        if (state.customCategoryColors[cat]) {
+          state.categoryColors[cat] = state.customCategoryColors[cat];
+        } else if (idx === 0) state.categoryColors[cat] = CONFIG.colors.categoryA;
         else if (idx === 1) state.categoryColors[cat] = CONFIG.colors.categoryB;
         else state.categoryColors[cat] = d3.schemeCategory10[idx % 10];
       });
@@ -619,13 +687,13 @@
       if (emptySourceTargetCount > 0) {
         noticesContainer.append("div")
           .attr("class", "notice-item")
-          .text(`Se omitieron ${emptySourceTargetCount} filas con origen o destino vacío en Películas (Links).`);
+          .text(`Se omitieron ${emptySourceTargetCount} filas con origen o destino vacío en Links (Conexiones).`);
       }
 
       if (missingNodesSet.size > 0) {
         noticesContainer.append("div")
           .attr("class", "notice-item")
-          .text(`Nodos de Películas no encontrados en Personajes: ${Array.from(missingNodesSet).join(', ')}`);
+          .text(`Nodos de destino no encontrados en Points: ${Array.from(missingNodesSet).join(', ')}`);
       }
 
       d3.select("#welcome-banner").style("display", "none");
@@ -902,7 +970,8 @@
         const links = linkEnter.merge(linkSelection)
           .attr("stroke-width", d => scales.linkScale(d.weight))
           .attr("stroke-dasharray", d => {
-            const isDotted = CONFIG.dottedTypes.includes(String(d.type).toLowerCase());
+            const linkType = String(d.type).trim().toLowerCase();
+            const isDotted = linkType === "antagonista" || CONFIG.dottedTypes.includes(linkType);
             return isDotted ? "4,4" : "none";
           })
           .attr("marker-end", d => (d.direction === "Origen → Destino" || d.direction === "Ambos") ? "url(#arrow-end)" : null)
@@ -935,6 +1004,25 @@
           .text(d => d.id);
 
         const nodes = nodeEnter.merge(nodeSelection);
+
+        nodes.select("circle")
+          .attr("fill", d => state.categoryColors[d.category] || CONFIG.colors.defaultNode);
+
+        const bipartiteCategories = Array.from(state.categories)
+          .filter(category => !state.hiddenCategories.has(category));
+        nodes.select(".node-label")
+          .attr("x", d => {
+            if (state.mode !== 'bipartite') return 0;
+            const radius = scales.nodeScale(d.weight !== null ? d.weight : d.connections);
+            return d.category === bipartiteCategories[0] ? -(radius + 8) : radius + 8;
+          })
+          .attr("text-anchor", d => {
+            if (state.mode !== 'bipartite') return "middle";
+            return d.category === bipartiteCategories[0] ? "end" : "start";
+          })
+          .attr("dy", d => state.mode === 'bipartite'
+            ? "0.35em"
+            : scales.nodeScale(d.weight !== null ? d.weight : d.connections) + 12);
 
         nodes.on("click", (event, d) => {
           event.stopPropagation();
@@ -1079,6 +1167,25 @@
       setEgoCenter: function(nodeId) {
         state.egoCenterId = nodeId;
         this.renderGraph();
+      },
+
+      setBackgroundColor: function(color) {
+        state.backgroundColor = color;
+        document.documentElement.style.setProperty("--bg-color", color);
+      },
+
+      setCategoryColor: function(category, color, legendColor) {
+        state.customCategoryColors[category] = color;
+        state.categoryColors[category] = color;
+        d3.select("#graph-container").selectAll(".node")
+          .filter(d => d.category === category)
+          .select("circle")
+          .attr("fill", color);
+        d3.select(legendColor).style("background-color", color);
+      },
+
+      loadDataset: function(datasetKey) {
+        loadDataset(datasetKey);
       }
     };
 
@@ -1089,22 +1196,35 @@
       const catContainer = d3.select("#categories-container");
       catContainer.html("");
 
+      const nodeColorsContainer = d3.select("#node-colors-container");
+      nodeColorsContainer.html("");
       state.categories.forEach(cat => {
         const item = catContainer.append("div").attr("class", "legend-item");
         
         const labelGroup = item.append("div").style("display", "flex").style("align-items", "center");
-        labelGroup.append("span")
+        const legendColor = labelGroup.append("span")
           .attr("class", "legend-color")
           .style("background-color", state.categoryColors[cat]);
         labelGroup.append("span").text(cat);
 
-        const checkbox = item.append("input")
+        item.append("input")
           .attr("type", "checkbox")
           .property("checked", !state.hiddenCategories.has(cat))
           .on("change", function() {
             if (this.checked) state.hiddenCategories.delete(cat);
             else state.hiddenCategories.add(cat);
             app.renderGraph();
+          });
+
+        const colorControl = nodeColorsContainer.append("label")
+          .attr("class", "color-control");
+        colorControl.append("span").text(cat);
+        colorControl.append("input")
+          .attr("type", "color")
+          .attr("aria-label", `Color de nodos: ${cat}`)
+          .property("value", state.categoryColors[cat])
+          .on("input", function() {
+            app.setCategoryColor(cat, this.value, legendColor.node());
           });
       });
 
@@ -1147,8 +1267,55 @@
       });
     }
 
+    let datasetLoadId = 0;
+
+    async function loadDataset(datasetKey) {
+      const dataset = DATASETS[datasetKey];
+      const loadId = ++datasetLoadId;
+      if (!dataset) {
+        d3.select("#notices-container")
+          .append("div")
+          .attr("class", "notice-item")
+          .text(`No existe el conjunto de datos "${datasetKey}".`);
+        return;
+      }
+
+      try {
+        const [pointsResponse, linksResponse] = await Promise.all([
+          fetch(dataset.points),
+          fetch(dataset.links)
+        ]);
+
+        if (!pointsResponse.ok) {
+          throw new Error(`No se pudo cargar ${dataset.points} (HTTP ${pointsResponse.status}).`);
+        }
+        if (!linksResponse.ok) {
+          throw new Error(`No se pudo cargar ${dataset.links} (HTTP ${linksResponse.status}).`);
+        }
+
+        const [points, links] = await Promise.all([
+          pointsResponse.text(),
+          linksResponse.text()
+        ]);
+        if (loadId !== datasetLoadId) return;
+
+        state.currentDataset = datasetKey;
+        state.rawData.points = points;
+        state.rawData.links = links;
+        processRawData();
+      } catch (error) {
+        if (loadId !== datasetLoadId) return;
+        d3.select("#notices-container")
+          .append("div")
+          .attr("class", "notice-item")
+          .text(`No fue posible cargar ${datasetKey}: ${error.message}`);
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       setupFileListeners();
+      d3.select("#background-color").property("value", state.backgroundColor);
+      app.loadDataset("marvel");
     });
   </script>
 </body>
