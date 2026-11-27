@@ -107,10 +107,207 @@
       font-weight: 700;
     }
 
+    header {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .header-navigation {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .graph-mode-tabs .tab-btn {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+    }
+
     .controls-header {
       display: flex;
       gap: 10px;
       align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .external-view {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .external-view[hidden],
+    main[hidden],
+    .controls-header[hidden],
+    .graph-mode-tabs[hidden] {
+      display: none;
+    }
+
+    .external-view h2 {
+      margin-bottom: 8px;
+      color: var(--accent-green);
+    }
+
+    .external-view-description {
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+
+    .flourish-embed {
+      width: 100%;
+      min-height: 70vh;
+    }
+
+    .flourish-embed iframe {
+      width: 100%;
+      min-height: 70vh;
+      border: 0;
+    }
+
+    .flourish-fallback {
+      margin-top: 12px;
+      overflow-wrap: anywhere;
+      font-size: 0.85rem;
+    }
+
+    .flourish-fallback a {
+      color: var(--accent-green);
+    }
+
+    #reflections-view {
+      background: #f4f1e8;
+      color: #253028;
+    }
+
+    .reflections-article {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+      line-height: 1.7;
+    }
+
+    .reflections-article h2 {
+      color: #1f5f3a;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      line-height: 1.25;
+      margin: 32px 0 14px;
+    }
+
+    .reflections-article h2:first-child {
+      margin-top: 0;
+    }
+
+    .reflections-article h3 {
+      color: #1f5f3a;
+      font-size: clamp(1.15rem, 2vw, 1.45rem);
+      line-height: 1.35;
+      margin: 28px 0 10px;
+    }
+
+    .reflections-article p {
+      margin-bottom: 16px;
+    }
+
+    .reflections-article ul {
+      margin: 10px 0 18px;
+      padding-left: 24px;
+    }
+
+    .reflections-article li {
+      margin-bottom: 8px;
+    }
+
+    #matrix-sheet-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .sheet-tab {
+      padding: 7px 12px;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text-main);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .sheet-tab.active {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    #matrix-status {
+      margin: 12px 0;
+      color: var(--text-muted);
+    }
+
+    #matrix-table-container {
+      max-height: calc(100vh - 230px);
+      overflow: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      white-space: nowrap;
+      font-size: 0.82rem;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 7px 10px;
+      border: 1px solid var(--panel-border);
+      text-align: left;
+    }
+
+    .matrix-table th {
+      position: sticky;
+      top: 0;
+      min-width: 145px;
+      background: #1b2a21;
+      color: var(--accent-green);
+      vertical-align: top;
+      z-index: 1;
+    }
+
+    .matrix-column-filter,
+    .matrix-column-sort {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 5px;
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-main);
+      font: inherit;
+    }
+
+    .matrix-column-filter::placeholder {
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 700px) {
+      header {
+        justify-content: center;
+      }
+
+      .header-navigation,
+      .controls-header {
+        justify-content: center;
+      }
+
+      .external-view {
+        padding: 14px;
+      }
     }
 
     .dataset-selector {
@@ -425,13 +622,22 @@
       <h1>U</h1>
     </div>
     
-    <div class="tabs">
-      <button class="tab-btn active" onclick="app.setMode('network')">Red</button>
-      <button class="tab-btn" onclick="app.setMode('bipartite')">Bipartito en Columnas</button>
-      <button class="tab-btn" onclick="app.setMode('ego')">Red Ego</button>
+    <div class="header-navigation">
+      <nav class="tabs" aria-label="Secciones principales">
+        <button class="tab-btn active" data-view="graph" onclick="app.setView('graph', this)">Red</button>
+        <button class="tab-btn" data-view="flourish" onclick="app.setView('flourish', this)">Flourish</button>
+        <button class="tab-btn" data-view="matrix" onclick="app.setView('matrix', this)">Matriz</button>
+        <button class="tab-btn" data-view="reflections" onclick="app.setView('reflections', this)">Reflexiones</button>
+      </nav>
+
+      <nav class="tabs graph-mode-tabs" id="graph-mode-tabs" aria-label="Modo de visualización">
+        <button class="tab-btn active" onclick="app.setMode('network', this)">Red</button>
+        <button class="tab-btn" onclick="app.setMode('bipartite', this)">Bipartito en Columnas</button>
+        <button class="tab-btn" onclick="app.setMode('ego', this)">Red Ego</button>
+      </nav>
     </div>
 
-    <div class="controls-header">
+    <div class="controls-header" id="graph-header-controls">
       <label class="dataset-selector" for="dataset-select">
         <span>Datos</span>
         <select id="dataset-select" onchange="app.loadDataset(this.value)">
@@ -451,7 +657,7 @@
   </header>
 
   <!-- Área de Renderizado Principal -->
-  <main>
+  <main id="graph-view">
     <button class="sidebar-toggle" id="sidebar-toggle" onclick="app.toggleSidebar()">☰</button>
     
     <!-- Barra Lateral de Capas y Filtros -->
@@ -526,6 +732,64 @@
     <!-- Tooltip Flotante -->
     <div class="tooltip" id="tooltip"></div>
   </main>
+
+  <section class="external-view" id="flourish-view" aria-label="Visualización Flourish" hidden>
+    <h2>Red en Flourish</h2>
+    <p class="external-view-description">Visualización interactiva publicada en Flourish.</p>
+    <div class="flourish-embed flourish-network" data-src="visualisation/30751387">
+      <noscript>
+        <img src="https://public.flourish.studio/visualisation/30751387/thumbnail" width="100%" alt="Visualización de red">
+      </noscript>
+    </div>
+    <div class="flourish-fallback" data-for="visualisation/30751387">
+      <a href="https://public.flourish.studio/visualisation/30751387/visualisation.json?ref=embed-script" target="_blank" rel="noopener noreferrer">Abrir datos de la visualización</a>
+    </div>
+  </section>
+
+  <section class="external-view" id="matrix-view" aria-label="Matriz de Marvel" hidden>
+    <h2>Matriz de Marvel</h2>
+    <p class="external-view-description">Hojas del archivo Marvel_matriz_adyacencia_y_grados.xlsx.</p>
+    <div id="matrix-status" role="status">La matriz se cargará al abrir esta pestaña.</div>
+    <div id="matrix-sheet-tabs" role="tablist" aria-label="Hojas del archivo"></div>
+    <div id="matrix-table-container"></div>
+  </section>
+
+  <section class="external-view" id="reflections-view" aria-label="Reflexiones" hidden>
+    <article class="reflections-article">
+      <h2>Flourish: visualizar conexiones, ideas y relaciones a través del diseño</h2>
+
+      <h3>¿Qué es Flourish?</h3>
+      <p>Flourish es una plataforma digital que permite transformar información en representaciones visuales e interactivas. A través de herramientas como mapas, gráficas, líneas del tiempo y redes de conexiones, permite organizar grandes cantidades de información y encontrar relaciones entre elementos que, a simple vista, podrían parecer independientes.</p>
+      <p>Sin embargo, el valor de este tipo de herramientas va más allá de presentar datos de una manera atractiva. También permite observar cómo se relacionan las cosas entre sí, encontrar características en común y entender que detrás de un objeto, una idea o un concepto existen muchas otras conexiones que pueden explorarse.</p>
+
+      <h3>El diseño como una red de conexiones</h3>
+      <p>Una de las posibilidades más interesantes de la visualización de datos es poder analizar un objeto más allá de su forma o función. Cualquier objeto de diseño puede relacionarse con una gran cantidad de elementos: los materiales que lo componen, sus procesos de fabricación, su contexto histórico, el diseñador que lo creó, su función y las corrientes estéticas que influyeron en su desarrollo.</p>
+      <p>Por ejemplo, al analizar una silla de madera, podríamos comenzar a construir una red que la conecte con otros muebles que utilizan el mismo material, diseñadores que han trabajado con él, tipos de madera, técnicas de ensamblaje, procesos industriales y estilos de diseño. A partir de estas relaciones sería posible identificar cuántos objetos comparten características similares, qué materiales se utilizan con mayor frecuencia o cómo un mismo recurso puede tener aplicaciones completamente diferentes dependiendo de su contexto.</p>
+      <p>Esto también puede aplicarse al diseño industrial, donde los objetos pueden relacionarse por sus materiales, funciones, procesos productivos, tecnologías o incluso por los problemas que buscan resolver.</p>
+      <p>En el diseño de moda sucede algo similar. Una prenda puede conectarse con una corriente artística, un movimiento cultural, una época histórica, un diseñador, una silueta, un material o una técnica de confección. Por ejemplo, al investigar el surrealismo en la moda, se podrían relacionar diseñadores, colecciones, prendas, referencias artísticas y elementos visuales que comparten características con esta corriente. La red permitiría observar qué diseñadores coinciden en ciertas influencias, qué conceptos se repiten y cómo una misma corriente se manifiesta de distintas maneras.</p>
+
+      <h3>¿Cómo se puede utilizar en futuros proyectos?</h3>
+      <p>La visualización de conexiones puede convertirse en una herramienta de investigación durante los procesos creativos. En lugar de buscar referencias de manera aislada, permite construir una estructura de información en la que cada elemento puede llevar a otro y abrir nuevas posibilidades de exploración.</p>
+      <p>Algunas aplicaciones podrían ser:</p>
+      <ul>
+        <li>Investigación de materiales: relacionar objetos, prendas y productos que utilizan un mismo material, identificando sus diferentes aplicaciones, propiedades y procesos de transformación.</li>
+        <li>Análisis de corrientes estéticas: conectar diseñadores, artistas, colecciones y objetos que comparten influencias o pertenecen a un mismo movimiento artístico.</li>
+        <li>Historia del diseño: construir redes que relacionen épocas, movimientos, diseñadores, objetos y acontecimientos que han influido en la evolución del diseño.</li>
+        <li>Exploración conceptual: partir de una palabra, un concepto o una idea y relacionarla con imágenes, objetos, materiales, referencias históricas y otros conceptos que ayuden a desarrollar una propuesta creativa.</li>
+        <li>Investigación de tendencias: identificar elementos que se repiten en distintas colecciones, productos o disciplinas para comprender cómo surgen y evolucionan ciertas tendencias.</li>
+        <li>Relaciones entre disciplinas: encontrar puntos en común entre el diseño industrial, textil, gráfico, arquitectónico y de moda, observando cómo comparten materiales, técnicas, formas o principios de diseño.</li>
+      </ul>
+
+      <h3>Una herramienta para descubrir nuevas posibilidades</h3>
+      <p>Lo interesante de trabajar con redes de conexiones es que no existe necesariamente un único punto de partida ni una sola dirección de investigación. Una búsqueda puede comenzar con un material y terminar en una corriente artística, o partir de un diseñador y llevarnos a descubrir otros creadores, técnicas y referencias que no habíamos considerado inicialmente.</p>
+      <p>De esta manera, la visualización permite encontrar relaciones que quizá no serían evidentes al consultar la información por separado. También ayuda a identificar elementos que se repiten, conexiones entre disciplinas y caminos de investigación que pueden enriquecer el desarrollo de un proyecto.</p>
+      <p>En el futuro, este tipo de herramientas podría utilizarse como parte de los procesos de investigación y conceptualización dentro del diseño. Una red podría funcionar como un mapa de referencias que crece conforme se desarrolla una idea, permitiendo organizar información, establecer relaciones y descubrir nuevas direcciones creativas.</p>
+      <p>Más que utilizar los datos únicamente para obtener resultados o estadísticas, se trata de aprovecharlos para generar preguntas, encontrar vínculos y ampliar nuestra manera de entender los objetos y el entorno que nos rodea. El diseño puede partir de una sola idea, pero sus posibilidades se multiplican cuando comenzamos a reconocer todo aquello con lo que se relaciona.</p>
+    </article>
+  </section>
+
+  <script src="https://public.flourish.studio/resources/embed.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script>
     /* ==========================================
@@ -884,6 +1148,181 @@
       });
     }
 
+    let matrixWorkbook = null;
+    let matrixLoadPromise = null;
+    let matrixTableState = null;
+
+    async function loadMatrixWorkbook() {
+      if (matrixWorkbook) return;
+      if (matrixLoadPromise) return matrixLoadPromise;
+
+      const status = document.getElementById("matrix-status");
+      status.textContent = "Cargando archivo de Excel...";
+      matrixLoadPromise = (async () => {
+        try {
+          if (typeof XLSX === "undefined") {
+            throw new Error("No se pudo cargar la biblioteca para leer archivos de Excel.");
+          }
+
+          const response = await fetch("data/matriz/Marvel_matriz_adyacencia_y_grados.xlsx");
+          if (!response.ok) {
+            throw new Error(`No se pudo cargar el archivo (HTTP ${response.status}).`);
+          }
+
+          const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+          if (workbook.SheetNames.length === 0) {
+            throw new Error("El archivo no contiene hojas para mostrar.");
+          }
+
+          matrixWorkbook = workbook;
+          renderMatrixSheet(workbook.SheetNames[0]);
+        } catch (error) {
+          status.textContent = `No fue posible cargar la matriz: ${error.message}`;
+          matrixLoadPromise = null;
+        }
+      })();
+      return matrixLoadPromise;
+    }
+
+    function renderMatrixSheet(sheetName) {
+      const worksheet = matrixWorkbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true, defval: "" });
+      const tabs = document.getElementById("matrix-sheet-tabs");
+      const container = document.getElementById("matrix-table-container");
+      tabs.replaceChildren();
+
+      matrixWorkbook.SheetNames.forEach(name => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `sheet-tab${name === sheetName ? " active" : ""}`;
+        button.textContent = name;
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-selected", name === sheetName ? "true" : "false");
+        button.addEventListener("click", () => renderMatrixSheet(name));
+        tabs.appendChild(button);
+      });
+
+      container.replaceChildren();
+      if (rows.length === 0) {
+        matrixTableState = null;
+        document.getElementById("matrix-status").textContent = `La hoja "${sheetName}" no contiene datos.`;
+        return;
+      }
+
+      const headers = rows[0];
+      matrixTableState = {
+        sheetName,
+        headers,
+        rows: rows.slice(1),
+        filters: headers.map(() => ""),
+        sortColumn: -1,
+        sortDirection: ""
+      };
+
+      const table = document.createElement("table");
+      table.className = "matrix-table";
+      const head = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headers.forEach((value, columnIndex) => {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        const label = value == null ? "" : String(value);
+        const title = document.createElement("div");
+        title.textContent = label;
+        cell.appendChild(title);
+
+        const filter = document.createElement("input");
+        filter.type = "search";
+        filter.className = "matrix-column-filter";
+        filter.placeholder = "Filtrar...";
+        filter.setAttribute("aria-label", `Filtrar ${label || `columna ${columnIndex + 1}`}`);
+        filter.addEventListener("input", () => {
+          matrixTableState.filters[columnIndex] = filter.value.trim().toLocaleLowerCase();
+          updateMatrixTableRows();
+        });
+        cell.appendChild(filter);
+
+        const sort = document.createElement("select");
+        sort.className = "matrix-column-sort";
+        sort.setAttribute("aria-label", `Ordenar ${label || `columna ${columnIndex + 1}`}`);
+        [
+          ["", "Sin ordenar"],
+          ["desc", "Mayor a menor"],
+          ["asc", "Menor a mayor"]
+        ].forEach(([direction, optionLabel]) => {
+          const option = document.createElement("option");
+          option.value = direction;
+          option.textContent = optionLabel;
+          sort.appendChild(option);
+        });
+        sort.addEventListener("change", () => {
+          matrixTableState.sortColumn = sort.value ? columnIndex : -1;
+          matrixTableState.sortDirection = sort.value;
+          table.querySelectorAll(".matrix-column-sort").forEach((otherSort, otherColumn) => {
+            if (otherColumn !== columnIndex) otherSort.value = "";
+          });
+          updateMatrixTableRows();
+        });
+        cell.appendChild(sort);
+        headerRow.appendChild(cell);
+      });
+      head.appendChild(headerRow);
+      table.appendChild(head);
+
+      const body = document.createElement("tbody");
+      table.appendChild(body);
+      container.appendChild(table);
+      updateMatrixTableRows();
+    }
+
+    function updateMatrixTableRows() {
+      if (!matrixTableState) return;
+
+      const { rows, filters, sortColumn, sortDirection, sheetName } = matrixTableState;
+      const visibleRows = rows
+        .map((row, index) => ({ row, index }))
+        .filter(({ row }) => filters.every((filter, column) => {
+          if (!filter) return true;
+          return String(row[column] == null ? "" : row[column])
+            .toLocaleLowerCase()
+            .includes(filter);
+        }));
+
+      if (sortColumn >= 0 && sortDirection) {
+        const direction = sortDirection === "desc" ? -1 : 1;
+        visibleRows.sort((left, right) => {
+          const leftValue = left.row[sortColumn];
+          const rightValue = right.row[sortColumn];
+          if (leftValue == null || leftValue === "") return rightValue == null || rightValue === "" ? left.index - right.index : 1;
+          if (rightValue == null || rightValue === "") return -1;
+
+          const leftNumber = Number(leftValue);
+          const rightNumber = Number(rightValue);
+          const bothNumeric = Number.isFinite(leftNumber) && Number.isFinite(rightNumber);
+          const comparison = bothNumeric
+            ? leftNumber - rightNumber
+            : String(leftValue).localeCompare(String(rightValue), "es", { numeric: true, sensitivity: "base" });
+          return comparison === 0 ? left.index - right.index : comparison * direction;
+        });
+      }
+
+      const body = document.querySelector("#matrix-table-container tbody");
+      const fragment = document.createDocumentFragment();
+      visibleRows.forEach(({ row }) => {
+        const tableRow = document.createElement("tr");
+        matrixTableState.headers.forEach((_, column) => {
+          const cell = document.createElement("td");
+          const value = row[column];
+          cell.textContent = value == null ? "" : String(value);
+          tableRow.appendChild(cell);
+        });
+        fragment.appendChild(tableRow);
+      });
+      body.replaceChildren(fragment);
+      document.getElementById("matrix-status").textContent =
+        `${sheetName}: ${visibleRows.length} de ${rows.length} filas de datos.`;
+    }
+
     /* ==========================================
        7. INTERACCIÓN Y DIBUJO CON D3
        ========================================== */
@@ -1135,10 +1574,31 @@
       /* ==========================================
          8. INTERFAZ Y EVENTOS DE USUARIO
          ========================================== */
-      setMode: function(mode) {
+      setView: function(view, button) {
+        const views = {
+          graph: "graph-view",
+          flourish: "flourish-view",
+          matrix: "matrix-view",
+          reflections: "reflections-view"
+        };
+        Object.keys(views).forEach(key => {
+          document.getElementById(views[key]).hidden = key !== view;
+        });
+        document.getElementById("graph-header-controls").hidden = view !== "graph";
+        document.getElementById("graph-mode-tabs").hidden = view !== "graph";
+        document.querySelectorAll(".tabs[aria-label='Secciones principales'] .tab-btn")
+          .forEach(tab => tab.classList.toggle("active", tab === button));
+
+        if (view === "matrix") loadMatrixWorkbook();
+        if (view === "graph" && state.nodes.length > 0) {
+          requestAnimationFrame(() => this.initGraph());
+        }
+      },
+
+      setMode: function(mode, button) {
         state.mode = mode;
-        d3.selectAll(".tab-btn").classed("active", false);
-        event.target.classList.add("active");
+        d3.select("#graph-mode-tabs").selectAll(".tab-btn").classed("active", false);
+        button.classList.add("active");
 
         d3.select("#ego-controls-section").style("display", mode === 'ego' ? "block" : "none");
 
